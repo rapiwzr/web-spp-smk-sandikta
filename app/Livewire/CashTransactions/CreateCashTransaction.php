@@ -4,68 +4,84 @@ namespace App\Livewire\CashTransactions;
 
 use App\Livewire\Forms\StoreCashTransactionForm;
 use App\Models\Student;
-use App\Models\PaymentCategory; // Model baru
+use App\Models\PaymentCategory;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class CreateCashTransaction extends Component
 {
+    use WithFileUploads;
+
     public StoreCashTransactionForm $form;
-
-    public $baseTuitionFee = 0; // Harga Jurusan
-    public $additionalFee = 0;  // Harga Program
     public $selectedProgramId = null;
+    public $proof;
 
-    // FUNGSI 1: SAAT SISWA DIPILIH
+    // --- FUNGSI CEK HARGA ---
     public function cekHarga($studentId)
     {
-        if (is_array($studentId)) $studentId = reset($studentId);
-        
-        $this->form->student_ids = [$studentId];
-        $student = Student::with('schoolMajor')->find($studentId);
-
-        if ($student && $student->schoolMajor) {
-            $this->baseTuitionFee = (int) ($student->schoolMajor->tuition_fee ?? 0);
-            $this->calculateTotal();
-            $this->form->note = "✅ Jurusan: " . $student->schoolMajor->name;
-        } else {
-            $this->baseTuitionFee = 0;
-            $this->calculateTotal();
-            $this->form->note = "❌ Siswa belum punya jurusan.";
+        // 1. Bersihkan ID jika formatnya array
+        if (is_array($studentId)) {
+            $studentId = reset($studentId);
         }
+        
+        // 2. Set ID ke Form (Cuma simpan ID, tidak mengubah Catatan)
+        $this->form->student_ids = [$studentId];
     }
 
-    // FUNGSI 2: SAAT PROGRAM DIPILIH
     public function updatedSelectedProgramId($value)
     {
         if ($value) {
             $program = PaymentCategory::find($value);
-            $this->additionalFee = (int) ($program->additional_fee ?? 0);
+            $this->form->amount = (int) ($program->additional_fee ?? 0);
         } else {
-            $this->additionalFee = 0;
+            $this->form->amount = 0;
         }
-        $this->calculateTotal();
-    }
-
-    // FUNGSI 3: HITUNG TOTAL
-    public function calculateTotal()
-    {
-        $this->form->amount = $this->baseTuitionFee + $this->additionalFee;
     }
 
     public function render(): View
     {
         return view('livewire.cash-transactions.create-cash-transaction', [
             'students' => Student::select('id', 'name', 'identification_number')->orderBy('name')->get(),
-            'programs' => PaymentCategory::all() // Kirim data program
+            'programs' => PaymentCategory::all()
         ]);
     }
 
     public function save(): void
     {
-        $this->form->store();
+        if (empty($this->selectedProgramId)) {
+            $this->dispatch('warning', message: 'Wajib memilih Kategori Program!');
+            return;
+        }
+
+        $this->validate([
+            'form.student_ids' => 'required',
+            'form.amount' => 'required|numeric',
+            'form.date_paid' => 'required|date',
+            'proof' => 'nullable|image|max:10240', // 10MB
+        ]);
+
+        $proofPath = null;
+        if ($this->proof) {
+            $proofPath = $this->proof->store('payment-proofs', 'public');
+        }
+
+        foreach ($this->form->student_ids as $studentId) {
+            \App\Models\CashTransaction::create([
+                'student_id' => $studentId,
+                'amount' => $this->form->amount,
+                'date_paid' => $this->form->date_paid,
+                'note' => $this->form->transaction_note, 
+                'proof_of_payment' => $proofPath,
+                'created_by' => auth()->id(),
+            ]);
+        }
+
         $this->dispatch('close-modal');
-        $this->dispatch('success', message: 'Transaksi berhasil!');
+        $this->dispatch('success', message: 'Transaksi berhasil disimpan!');
         $this->dispatch('cash-transaction-created')->to(CashTransactionCurrentWeekTable::class);
+        
+        $this->reset(['selectedProgramId', 'proof']);
+        $this->form->reset();
     }
 }

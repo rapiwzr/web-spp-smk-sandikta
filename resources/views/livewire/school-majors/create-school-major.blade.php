@@ -26,18 +26,8 @@
                             @error('form.abbreviation') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
 
-                        {{-- INPUT BIAYA SPP (Perbaikan Nama Variabel) --}}
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Biaya SPP (Rp)</label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rp</span>
-                                {{-- Gunakan 'tuition_fee' bukan 'monthly_fee' --}}
-                                <input type="number" class="form-control @error('form.tuition_fee') is-invalid @enderror" 
-                                       wire:model="form.tuition_fee" placeholder="Contoh: 150000">
-                            </div>
-                            <div class="form-text text-muted small">Nominal ini akan otomatis muncul saat membuat transaksi baru.</div>
-                            @error('form.tuition_fee') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
-                        </div>
+                        {{-- HAPUS INPUT BIAYA SPP --}}
+                        {{-- Karena harga sekarang diatur di menu 'Kategori Program', bukan di Jurusan lagi. --}}
 
                     </div>
                     

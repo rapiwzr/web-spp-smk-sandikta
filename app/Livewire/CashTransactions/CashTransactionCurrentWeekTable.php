@@ -22,7 +22,7 @@ class CashTransactionCurrentWeekTable extends Component
     use WithPagination;
 
     // --- 1. KONFIGURASI ---
-    public int $limit = 500; // Default limit tinggi agar bisa scroll
+    public int $limit = 50; 
     public ?string $query = '';
     public string $orderByColumn = 'date_paid';
     public string $orderBy = 'desc';
@@ -33,7 +33,6 @@ class CashTransactionCurrentWeekTable extends Component
         'schoolClassID' => '',
     ];
 
-    // Variabel Statistik (Penting agar bisa diakses di Blade)
     public $statistics = []; 
 
     // --- 2. FUNGSI RESET & UPDATE ---
@@ -47,7 +46,7 @@ class CashTransactionCurrentWeekTable extends Component
         $this->reset(['query', 'limit', 'orderByColumn', 'orderBy', 'filters']);
     }
 
-    // --- 3. COMPUTED PROPERTIES (DATA REFERENSI UNTUK FILTER) ---
+    // --- 3. COMPUTED PROPERTIES (DATA REFERENSI) ---
     #[Computed]
     public function students(): Collection
     {
@@ -72,84 +71,101 @@ class CashTransactionCurrentWeekTable extends Component
         return SchoolClass::select('id', 'name')->get();
     }
 
-    // --- 4. RENDER (LOGIKA UTAMA) ---
+    // --- 4. EVENT HANDLER: HAPUS TRANSAKSI (WAJIB ADA) ---
+    #[On('delete-transaction')]
+    public function deleteTransaction($id)
+    {
+        $transaction = CashTransaction::find($id);
+
+        if ($transaction) {
+            $transaction->delete();
+            $this->dispatch('success', message: 'Transaksi berhasil dihapus!');
+        } else {
+            $this->dispatch('error', message: 'Data tidak ditemukan!');
+        }
+    }
+
+    // --- 5. EVENT HANDLER: EDIT TRANSAKSI ---
+    #[On('edit-transaction')]
+    public function editTransaction($id)
+    {
+        // Event ini akan ditangkap oleh modal Edit (jika file-nya ada)
+        // Kita teruskan ID-nya ke komponen Edit
+        $this->dispatch('set-edit-transaction', id: $id)->to('cash-transactions.edit-cash-transaction');
+        
+        // Buka modal edit (jika pakai script JS manual)
+        // $this->dispatch('open-edit-modal'); 
+    }
+
+    // --- 6. RENDER (LOGIKA UTAMA) ---
     #[On('cash-transaction-created')]
     #[On('cash-transaction-updated')]
     #[On('cash-transaction-deleted')]
     public function render(): View
     {
-        // A. Tentukan Tanggal Semester (Ganjil/Genap)
+        // A. Tentukan Tanggal Semester
         $bulanSekarang = date('n');
         $tahunSekarang = date('Y');
 
         if ($bulanSekarang >= 7) {
-            // Semester Ganjil (Juli - Desember)
             $startDate = "$tahunSekarang-07-01";
             $endDate = "$tahunSekarang-12-31";
             $semesterLabel = "Ganjil " . $tahunSekarang;
         } else {
-            // Semester Genap (Januari - Juni)
             $startDate = "$tahunSekarang-01-01";
             $endDate = "$tahunSekarang-06-30";
             $semesterLabel = "Genap " . $tahunSekarang;
         }
 
-        // B. Query Utama (Tabel Transaksi)
+        // B. Query Utama
         $transactions = CashTransaction::query()
             ->with(['student.schoolMajor', 'student.schoolClass', 'createdBy'])
-            
-            // Filter Wajib: Hanya data di semester ini
             ->whereBetween('date_paid', [$startDate, $endDate])
-            
-            // Filter Pencarian
             ->when($this->query, function (Builder $q) {
                 $q->whereHas('student', function ($subQ) {
                     $subQ->where('name', 'like', '%' . $this->query . '%')
-                         ->orWhere('identification_number', 'like', '%' . $this->query . '%');
+                          ->orWhere('identification_number', 'like', '%' . $this->query . '%');
                 });
             })
-            // Filter Dropdown
             ->when($this->filters['user_id'], fn (Builder $q) => $q->where('created_by', $this->filters['user_id']))
             ->when($this->filters['schoolMajorID'], fn (Builder $q) => $q->whereRelation('student', 'school_major_id', $this->filters['schoolMajorID']))
             ->when($this->filters['schoolClassID'], fn (Builder $q) => $q->whereRelation('student', 'school_class_id', $this->filters['schoolClassID']))
-            
             ->orderBy($this->orderByColumn, $this->orderBy)
             ->paginate($this->limit);
 
-        // C. Hitung Statistik (Manual agar angka di kartu atas benar)
+        // C. Hitung Statistik (Manual)
         $totalUangSemester = CashTransaction::whereBetween('date_paid', [$startDate, $endDate])->sum('amount');
         $totalUangTahun = CashTransaction::whereYear('date_paid', $tahunSekarang)->sum('amount');
 
-        // Simpan ke variabel public agar bisa diakses view
+        // Gunakan number_format (aman & standar PHP)
         $this->statistics = [
-            'totalCurrentMonth' => local_amount_format($totalUangSemester),
-            'totalCurrentYear' => local_amount_format($totalUangTahun),
+            'totalCurrentMonth' => "Rp " . number_format($totalUangSemester, 0, ',', '.'),
+            'totalCurrentYear' => "Rp " . number_format($totalUangTahun, 0, ',', '.'),
         ];
 
-        // D. Hitung Data Siswa (Lunas/Belum)
+        // D. Hitung Data Siswa
         $totalSiswa = Student::count();
         $sudahBayarCount = CashTransaction::whereBetween('date_paid', [$startDate, $endDate])
                             ->distinct('student_id')
                             ->count('student_id');
         $belumBayarCount = $totalSiswa - $sudahBayarCount;
 
-        // Ambil data siswa yang belum bayar untuk Modal
+        // Ambil data siswa nunggak
         $listNunggak = Student::whereDoesntHave('cashTransactions', function($q) use ($startDate, $endDate) {
             $q->whereBetween('date_paid', [$startDate, $endDate]);
         })->paginate(100); 
 
-        // E. Kirim Semua Data ke View (Blade)
+        // E. Kirim ke View
         return view('livewire.cash-transactions.cash-transaction-current-week-table', [
             'cashTransactions' => $transactions,
             
-            // --- INI PERBAIKAN PENTING ---
-            // Mengirim data referensi agar filter tidak error "Undefined variable"
+            // Data Referensi
             'users' => $this->users,               
             'schoolMajors' => $this->schoolMajors, 
             'schoolClasses' => $this->schoolClasses, 
             'students' => $this->students,         
             
-            // Variabel Logika & Statistik
+            // Data Logika
             'semesterLabel' => $semesterLabel,
             'startDate' => $startDate,
             'endDate' => $endDate,

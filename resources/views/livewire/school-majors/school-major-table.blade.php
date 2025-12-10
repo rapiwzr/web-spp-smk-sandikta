@@ -3,6 +3,8 @@
     <div class="card">
       <div class="card-body">
         <h5 class="card-title">Daftar Jurusan</h5>
+        
+        {{-- FILTER & TOMBOL --}}
         <div class="d-flex flex-wrap justify-content-end mb-3 gap-3">
           <select wire:model.live="limit" class="form-select form-select-sm w-auto rounded">
             <option value="5">5</option>
@@ -10,11 +12,9 @@
             <option value="15">15</option>
           </select>
 
-          {{-- Sort Dropdown --}}
           <select wire:model.live="orderByColumn" class="form-select form-select-sm w-auto rounded">
             <option value="name">Nama Jurusan</option>
-            {{-- PASTIKAN INI TUITION_FEE --}}
-            <option value="tuition_fee">Biaya SPP</option> 
+            {{-- HAPUS OPSI TUITION_FEE --}}
             <option value="created_at">Baru Ditambahkan</option>
           </select>
 
@@ -37,6 +37,7 @@
           </button>
         </div>
 
+        {{-- SEARCH BAR --}}
         <div class="mb-3">
           <div class="form-group has-icon-left">
             <div class="position-relative">
@@ -49,11 +50,12 @@
           </div>
         </div>
 
+        {{-- TABEL DATA --}}
         <div class="table-responsive">
           <table class="table table-bordered table-hover align-middle">
             <thead class="table-light">
               <tr>
-                <th scope="col">#</th>
+                <th scope="col" width="5%">#</th>
                 
                 <th scope="col" style="cursor: pointer" wire:click="$set('orderByColumn', 'name')">
                     Nama Jurusan <i class="bi bi-arrow-down-up small text-muted"></i>
@@ -61,17 +63,14 @@
                 
                 <th scope="col">Singkatan</th>
 
-                {{-- Header Biaya SPP --}}
-                <th scope="col" style="cursor: pointer" wire:click="$set('orderByColumn', 'tuition_fee')">
-                    Biaya SPP <i class="bi bi-arrow-down-up small text-muted"></i>
-                </th>
-
-                <th scope="col">Aksi</th>
+                {{-- HAPUS KOLOM BIAYA SPP --}}
+                
+                <th scope="col" width="15%">Aksi</th>
               </tr>
             </thead>
             <tbody>
               <tr wire:loading class="position-absolute w-100 h-100 top-0 start-0 bg-white opacity-75">
-                <td colspan="5" class="text-center align-middle">
+                <td colspan="4" class="text-center align-middle">
                   <div class="spinner-border text-primary" role="status"></div>
                 </td>
               </tr>
@@ -88,10 +87,7 @@
                 
                 <td><span class="badge bg-secondary">{{ $schoolMajor->abbreviation }}</span></td>
                 
-                {{-- PERBAIKAN: Gunakan tuition_fee --}}
-                <td class="text-primary fw-bold">
-                    Rp {{ number_format($schoolMajor->tuition_fee, 0, ',', '.') }}
-                </td>
+                {{-- HAPUS DATA BIAYA SPP --}}
 
                 <td>
                   <div class="btn-group gap-1" role="group">
@@ -110,13 +106,15 @@
               </tr>
               @empty
               <tr wire:loading.remove class="text-center">
-                <td colspan="5" class="fw-bold py-4 text-muted">Tidak ada data yang ditemukan!</td>
+                <td colspan="4" class="fw-bold py-4 text-muted">Tidak ada data yang ditemukan!</td>
               </tr>
               @endforelse
             </tbody>
           </table>
 
-          {{ $schoolMajors->links(data: ['scrollTo' => false]) }}
+          <div class="mt-3">
+            {{ $schoolMajors->links(data: ['scrollTo' => false]) }}
+          </div>
         </div>
       </div>
     </div>

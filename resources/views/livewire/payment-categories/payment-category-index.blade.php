@@ -38,7 +38,7 @@
                         <tr>
                             <th width="5%">#</th>
                             <th>Nama Kategori</th>
-                            <th>Harga Tambahan / Potongan</th>
+                            <th>Nominal SPP</th>
                             <th width="15%">Aksi</th>
                         </tr>
                     </thead>
@@ -48,14 +48,13 @@
                                 <td>{{ $categories->firstItem() + $index }}</td>
                                 <td class="fw-bold">{{ $category->name }}</td>
                                 
-                                {{-- LOGIKA TAMPILAN HARGA (PLUS/MINUS) --}}
-                                <td class="fw-bold {{ $category->additional_fee < 0 ? 'text-danger' : 'text-primary' }}">
-                                    @if($category->additional_fee > 0)
-                                        + Rp {{ number_format($category->additional_fee, 0, ',', '.') }}
-                                    @elseif($category->additional_fee < 0)
-                                        - Rp {{ number_format(abs($category->additional_fee), 0, ',', '.') }} (Potongan)
+                                {{-- KOLOM HARGA BERSIH (TANPA PLUS MINUS) --}}
+                                <td class="fw-bold text-primary">
+                                    @if($category->additional_fee == 0)
+                                        Rp 0 (Gratis/Beasiswa Full)
                                     @else
-                                        Rp 0 (Standar)
+                                        {{-- Tampilkan angka positif saja --}}
+                                        Rp {{ number_format($category->additional_fee, 0, ',', '.') }}
                                     @endif
                                 </td>
 
@@ -105,20 +104,20 @@
                         {{-- Input Nama --}}
                         <div class="mb-3">
                             <label class="form-label">Nama Kategori</label>
-                            <input type="text" class="form-control" wire:model="name" placeholder="Contoh: Beasiswa Prestasi">
+                            <input type="text" class="form-control" wire:model="name" placeholder="Contoh: Reguler / Beasiswa Full">
                             @error('name') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
 
                         {{-- Input Harga --}}
                         <div class="mb-3">
-                            <label class="form-label">Nominal (Rp)</label>
+                            <label class="form-label">Nominal SPP (Rp)</label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
                                 <input type="number" class="form-control" wire:model="additional_fee" placeholder="0">
                             </div>
                             <div class="form-text small text-muted">
-                                Gunakan tanda <b>minus (-)</b> untuk diskon/potongan harga. <br>
-                                Contoh: <code>-500000</code> untuk potongan 500rb.
+                                Masukkan nominal <b>Harga Pas</b> (Bukan tambahan/potongan).<br>
+                                Isi <code>0</code> jika Gratis (Beasiswa Full).
                             </div>
                             @error('additional_fee') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>

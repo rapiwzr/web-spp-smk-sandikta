@@ -77,7 +77,24 @@
     </style>
 </head>
 <body>
-<div class="invoice-box">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+    function downloadPDF() {
+        var element = document.querySelector(".invoice-box"); // elemen invoice
+        html2pdf(element, {
+            margin: 10,
+            filename: 'invoice.pdf',
+            html2canvas: { scale: 2 },
+            jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+        });
+    }
+    </script>
+
+    <button class="btn btn-danger" onclick="downloadPDF()">
+    🖨️ Download PDF
+    </button>
+
+    <div class="invoice-box">
     <!-- Header -->
     <div class="invoice-header">
         <img src="{{ asset('img/logo-SMK-sandikta-PNG.png') }}" alt="Logo Sekolah">
@@ -103,14 +120,29 @@
             <thead>
                 <tr>
                     <th>Deskripsi</th>
-                    <th>Bulan</th>
+                    <th>Semester</th> 
                     <th class="text-end">Nominal</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td>Pembayaran SPP</td>
-                    <td>{{ $transaction->month ?? '-' }}</td>
+                    <td>
+                        @php
+                            // Ambil angka bulan (1-12) dari tanggal transaksi
+                            $bulan = $transaction->created_at->format('n'); 
+                            
+                            // Logika: Juli (7) s/d Desember (12) = Ganjil
+                            // Sisanya (Januari - Juni) = Genap
+                            if ($bulan >= 7) {
+                                $ketSemester = "Ganjil (Juli - Desember)";
+                            } else {
+                                $ketSemester = "Genap (Januari - Juni)";
+                            }
+                        @endphp
+                        
+                        {{ $ketSemester }}
+                    </td>
                     <td class="text-end">Rp {{ number_format($transaction->amount, 0, ',', '.') }}</td>
                 </tr>
             </tbody>

@@ -17,9 +17,13 @@ class PaymentCategoryIndex extends Component
     public $selectedId;
     public $isEditMode = false;
 
+    // --- VALIDASI ---
     protected $rules = [
         'name' => 'required|string|max:255',
-        'additional_fee' => 'required|numeric',
+        // KITA KEMBALIKAN 'min:0'
+        // Karena ini adalah "Harga Utama", tidak boleh minus.
+        // Kalau Beasiswa Full, cukup isi 0.
+        'additional_fee' => 'required|numeric|min:0',
     ];
 
     public function render()
@@ -38,10 +42,12 @@ class PaymentCategoryIndex extends Component
     public function store()
     {
         $this->validate();
+
         PaymentCategory::create([
             'name' => $this->name,
             'additional_fee' => $this->additional_fee,
         ]);
+
         $this->dispatch('close-modal');
         $this->dispatch('success', message: 'Kategori berhasil ditambahkan!');
         $this->reset(['name', 'additional_fee']);
@@ -50,22 +56,27 @@ class PaymentCategoryIndex extends Component
     public function edit($id)
     {
         $category = PaymentCategory::find($id);
+        
         $this->selectedId = $id;
         $this->name = $category->name;
-        $this->additional_fee = $category->additional_fee;
+        // Pastikan tampil sebagai integer agar rapi di form
+        $this->additional_fee = (int) $category->additional_fee; 
         $this->isEditMode = true;
+
         $this->dispatch('open-modal');
     }
 
     public function update()
     {
         $this->validate();
+
         if ($this->selectedId) {
             $category = PaymentCategory::find($this->selectedId);
             $category->update([
                 'name' => $this->name,
                 'additional_fee' => $this->additional_fee,
             ]);
+
             $this->dispatch('close-modal');
             $this->dispatch('success', message: 'Kategori berhasil diupdate!');
             $this->reset(['name', 'additional_fee', 'selectedId', 'isEditMode']);
@@ -75,7 +86,9 @@ class PaymentCategoryIndex extends Component
     public function delete($id)
     {
         $category = PaymentCategory::find($id);
-        if ($category) $category->delete();
-        $this->dispatch('success', message: 'Kategori berhasil dihapus!');
+        if ($category) {
+            $category->delete();
+            $this->dispatch('success', message: 'Kategori berhasil dihapus!');
+        }
     }
 }
