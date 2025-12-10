@@ -10,8 +10,11 @@
             <option value="15">15</option>
           </select>
 
+          {{-- Sort Dropdown --}}
           <select wire:model.live="orderByColumn" class="form-select form-select-sm w-auto rounded">
             <option value="name">Nama Jurusan</option>
+            {{-- PASTIKAN INI TUITION_FEE --}}
+            <option value="tuition_fee">Biaya SPP</option> 
             <option value="created_at">Baru Ditambahkan</option>
           </select>
 
@@ -47,34 +50,51 @@
         </div>
 
         <div class="table-responsive">
-          <table class="table table-bordered table-hover">
-            <thead>
+          <table class="table table-bordered table-hover align-middle">
+            <thead class="table-light">
               <tr>
                 <th scope="col">#</th>
-                <th scope="col">Nama Jurusan</th>
-                <th scope="col">Singkatan Jurusan</th>
+                
+                <th scope="col" style="cursor: pointer" wire:click="$set('orderByColumn', 'name')">
+                    Nama Jurusan <i class="bi bi-arrow-down-up small text-muted"></i>
+                </th>
+                
+                <th scope="col">Singkatan</th>
+
+                {{-- Header Biaya SPP --}}
+                <th scope="col" style="cursor: pointer" wire:click="$set('orderByColumn', 'tuition_fee')">
+                    Biaya SPP <i class="bi bi-arrow-down-up small text-muted"></i>
+                </th>
+
                 <th scope="col">Aksi</th>
               </tr>
             </thead>
             <tbody>
-              <tr wire:loading>
-                <td colspan="3" class="text-center">
-                  <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                  </div>
+              <tr wire:loading class="position-absolute w-100 h-100 top-0 start-0 bg-white opacity-75">
+                <td colspan="5" class="text-center align-middle">
+                  <div class="spinner-border text-primary" role="status"></div>
                 </td>
               </tr>
 
               @php
               $startIndex = ($schoolMajors->currentPage() - 1) * $schoolMajors->perPage() + 1;
               @endphp
+              
               @forelse ($schoolMajors as $index => $schoolMajor)
               <tr wire:key="{{ $schoolMajor->id }}">
                 <th scope="row">{{ $startIndex + $index }}</th>
-                <td>{{ $schoolMajor->name }}</td>
-                <td>{{ $schoolMajor->abbreviation }}</td>
+                
+                <td class="fw-bold">{{ $schoolMajor->name }}</td>
+                
+                <td><span class="badge bg-secondary">{{ $schoolMajor->abbreviation }}</span></td>
+                
+                {{-- PERBAIKAN: Gunakan tuition_fee --}}
+                <td class="text-primary fw-bold">
+                    Rp {{ number_format($schoolMajor->tuition_fee, 0, ',', '.') }}
+                </td>
+
                 <td>
-                  <div class="btn-group grid gap-1" role="group">
+                  <div class="btn-group gap-1" role="group">
                     <button wire:loading.attr="disabled"
                       wire:click="$dispatch('school-major-edit', {schoolMajor: {{ $schoolMajor->id }}})" type="button"
                       class="btn btn-sm btn-success rounded" data-bs-toggle="modal" data-bs-target="#editModal">
@@ -90,7 +110,7 @@
               </tr>
               @empty
               <tr wire:loading.remove class="text-center">
-                <td colspan="3" class="fw-bold">Tidak ada data yang ditemukan!</td>
+                <td colspan="5" class="fw-bold py-4 text-muted">Tidak ada data yang ditemukan!</td>
               </tr>
               @endforelse
             </tbody>

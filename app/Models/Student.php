@@ -28,7 +28,8 @@ class Student extends Model
      */
     public function schoolClass(): BelongsTo
     {
-        return $this->belongsTo(SchoolClass::class);
+        // Saya tambahkan 'school_class_id' agar lebih spesifik
+        return $this->belongsTo(SchoolClass::class, 'school_class_id');
     }
 
     /**
@@ -36,7 +37,8 @@ class Student extends Model
      */
     public function schoolMajor(): BelongsTo
     {
-        return $this->belongsTo(SchoolMajor::class);
+        // Saya tambahkan 'school_major_id' agar sistem tidak bingung
+        return $this->belongsTo(SchoolMajor::class, 'school_major_id');
     }
 
     /**

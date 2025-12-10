@@ -11,7 +11,7 @@ class SchoolMajor extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'abbreviation'];
+    protected $fillable = ['name', 'abbreviation', 'tuition_fee'];
 
     /**
      * Get the students relationship.
@@ -20,6 +20,8 @@ class SchoolMajor extends Model
     {
         return $this->hasMany(Student::class);
     }
+
+    
 
     /**
      * Scope a query to search for data across multiple columns.

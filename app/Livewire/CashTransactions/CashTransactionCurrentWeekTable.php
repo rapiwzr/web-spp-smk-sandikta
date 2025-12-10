@@ -22,7 +22,7 @@ class CashTransactionCurrentWeekTable extends Component
     use WithPagination;
 
     // --- 1. KONFIGURASI ---
-    public int $limit = 500; // Default tampilkan banyak data agar bisa di-scroll
+    public int $limit = 500; // Default limit tinggi agar bisa scroll
     public ?string $query = '';
     public string $orderByColumn = 'date_paid';
     public string $orderBy = 'desc';
@@ -33,7 +33,7 @@ class CashTransactionCurrentWeekTable extends Component
         'schoolClassID' => '',
     ];
 
-    // Variabel Statistik Publik
+    // Variabel Statistik (Penting agar bisa diakses di Blade)
     public $statistics = []; 
 
     // --- 2. FUNGSI RESET & UPDATE ---
@@ -47,7 +47,7 @@ class CashTransactionCurrentWeekTable extends Component
         $this->reset(['query', 'limit', 'orderByColumn', 'orderBy', 'filters']);
     }
 
-    // --- 3. COMPUTED PROPERTIES (DATA REFERENSI) ---
+    // --- 3. COMPUTED PROPERTIES (DATA REFERENSI UNTUK FILTER) ---
     #[Computed]
     public function students(): Collection
     {
@@ -116,11 +116,11 @@ class CashTransactionCurrentWeekTable extends Component
             ->orderBy($this->orderByColumn, $this->orderBy)
             ->paginate($this->limit);
 
-        // C. Hitung Statistik
+        // C. Hitung Statistik (Manual agar angka di kartu atas benar)
         $totalUangSemester = CashTransaction::whereBetween('date_paid', [$startDate, $endDate])->sum('amount');
         $totalUangTahun = CashTransaction::whereYear('date_paid', $tahunSekarang)->sum('amount');
 
-        // Simpan ke variabel public $statistics
+        // Simpan ke variabel public agar bisa diakses view
         $this->statistics = [
             'totalCurrentMonth' => local_amount_format($totalUangSemester),
             'totalCurrentYear' => local_amount_format($totalUangTahun),
@@ -142,11 +142,12 @@ class CashTransactionCurrentWeekTable extends Component
         return view('livewire.cash-transactions.cash-transaction-current-week-table', [
             'cashTransactions' => $transactions,
             
-            // Variabel Data Referensi (Ini yang tadi bikin error undefined variable)
-            'users' => $this->users,               // <-- PENTING
-            'schoolMajors' => $this->schoolMajors, // <-- PENTING
-            'schoolClasses' => $this->schoolClasses, // <-- PENTING
-            'students' => $this->students,         // <-- PENTING
+            // --- INI PERBAIKAN PENTING ---
+            // Mengirim data referensi agar filter tidak error "Undefined variable"
+            'users' => $this->users,               
+            'schoolMajors' => $this->schoolMajors, 
+            'schoolClasses' => $this->schoolClasses, 
+            'students' => $this->students,         
             
             // Variabel Logika & Statistik
             'semesterLabel' => $semesterLabel,

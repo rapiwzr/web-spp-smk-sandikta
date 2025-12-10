@@ -2,50 +2,38 @@
 
 namespace App\Livewire\Forms;
 
-use App\Models\SchoolMajor;
+use App\Models\CashTransaction;
 use Livewire\Attributes\Validate;
 use Livewire\Form;
 
-class StoreSchoolMajorForm extends Form
+class StoreCashTransactionForm extends Form
 {
-    #[Validate]
-    public ?string $name;
+    // Pastikan semua variabel ini ADA:
+    public $student_ids = []; // Untuk menampung ID siswa (array)
+    
+    #[Validate('required|numeric|min:0')]
+    public $amount = 0; // <--- INI WAJIB ADA (Tagihan)
 
-    public ?string $abbreviation;
+    #[Validate('required|date')]
+    public $date_paid;
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(): void
+    public $note;
+
+    public function store()
     {
         $this->validate();
 
-        SchoolMajor::create($this->pull());
-    }
+        // Loop karena student_ids bentuknya array (meski isinya cuma 1)
+        foreach ($this->student_ids as $studentId) {
+            CashTransaction::create([
+                'student_id' => $studentId,
+                'amount' => $this->amount,
+                'date_paid' => $this->date_paid,
+                'note' => $this->note,
+                'created_by' => auth()->id(), // Pastikan user login tersimpan
+            ]);
+        }
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
-    public function rules(): array
-    {
-        return [
-            'name' => 'required|max:255',
-            'abbreviation' => 'required|max:255|unique:school_majors,abbreviation',
-        ];
-    }
-
-    /**
-     * Get the error messages for the defined validation rules.
-     */
-    public function messages(): array
-    {
-        return [
-            'name.required' => 'Nama jurusan tidak boleh kosong!',
-            'name.max' => 'Nama jurusan harus maksimal :max karakter!',
-
-            'abbreviation.required' => 'Singkatan jurusan tidak boleh kosong!',
-            'abbreviation.max' => 'Singkatan jurusan harus maksimal :max karakter!',
-            'abbreviation.unique' => 'Singkatan jurusan sudah terdaftar!',
-        ];
+        $this->reset();
     }
 }

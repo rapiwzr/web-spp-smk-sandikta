@@ -21,24 +21,30 @@ class EditSchoolMajor extends Component
     }
 
     /**
-     * Set the specified model instance for the component.
+     * Set data awal saat tombol Edit diklik di tabel.
      */
     #[On('school-major-edit')]
     public function setValue(SchoolMajor $schoolMajor): void
     {
-        $this->form->schoolMajor = $schoolMajor;
-        $this->form->fill($schoolMajor);
+        // --- PERBAIKAN DI SINI ---
+        // Kita panggil method setSchoolMajor() yang ada di Form Object.
+        // Method ini akan otomatis mengisi nama, singkatan, DAN monthly_fee.
+        $this->form->setSchoolMajor($schoolMajor);
     }
 
     /**
-     * Update the form data and handle the related events.
+     * Update data ke database saat tombol Simpan diklik.
      */
-    public function edit(): void
+    public function save(): void // <-- SAYA UBAH NAMANYA JADI 'save' (sebelumnya 'edit')
     {
+        // Panggil fungsi update di form object
         $this->form->update();
 
+        // Tutup modal dan beri notifikasi
         $this->dispatch('close-modal');
         $this->dispatch('success', message: 'Data berhasil diubah!');
+        
+        // Refresh tabel
         $this->dispatch('school-major-updated')->to(SchoolMajorTable::class);
     }
 }
