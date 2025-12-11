@@ -20,21 +20,6 @@
                 <x-forms.input-with-icon wire:model.blur="form.abbreviation" label="Singkatan Jurusan"
                   name="form.abbreviation" placeholder="Masukan singkatan jurusan.." type="text"
                   icon="bi bi-card-text" />
-
-                {{-- PERBAIKAN: Gunakan 'tuition_fee' (Bukan monthly_fee) --}}
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Biaya SPP (Rp)</label>
-                    <div class="input-group">
-                        <span class="input-group-text">Rp</span>
-                        {{-- GANTI DI SINI --}}
-                        <input type="number" class="form-control @error('form.tuition_fee') is-invalid @enderror" 
-                               wire:model.blur="form.tuition_fee" placeholder="Contoh: 150000">
-                    </div>
-                    <div class="form-text text-muted small">Nominal ini akan otomatis muncul saat membuat transaksi baru.</div>
-                    {{-- GANTI DI SINI JUGA --}}
-                    @error('form.tuition_fee') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
-                </div>
-
               </div>
             </div>
 

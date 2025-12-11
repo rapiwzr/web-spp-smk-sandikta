@@ -4,22 +4,46 @@ namespace App\Livewire\CashTransactions;
 
 use App\Livewire\Forms\StoreCashTransactionForm;
 use App\Models\CashTransaction;
+use App\Models\PaymentCategory; // <--- INI NAMA MODEL YANG BENAR
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Livewire\WithFileUploads; // 1. IMPORT LIBRARY UPLOAD
-use Illuminate\Support\Facades\Storage; // IMPORT STORAGE UNTUK HAPUS FILE LAMA
+use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Storage;
 
 class EditCashTransaction extends Component
 {
-    use WithFileUploads; // 2. GUNAKAN TRAIT INI
+    use WithFileUploads;
 
     public StoreCashTransactionForm $form; 
     public $transactionId;
     public $studentName;
-    
-    // 3. VARIABEL FILE FOTO BARU
     public $proof; 
+
+    // DATA UNTUK DROPDOWN
+    public $programs = []; 
+    public $selectedProgramId = null; 
+
+    // 1. AMBIL DATA KATEGORI SAAT COMPONENT DIMUAT
+    public function mount()
+    {
+        $this->programs = PaymentCategory::all();
+    }
+
+    // 2. LOGIKA OTOMATIS GANTI HARGA (SAMA SEPERTI FILE CREATE)
+    public function updatedSelectedProgramId($value)
+    {
+        if ($value) {
+            $program = PaymentCategory::find($value);
+            // Ambil harga dari additional_fee, jika null set 0
+            $this->form->amount = (int) ($program->additional_fee ?? 0);
+            
+            // Opsional: Jika ingin otomatis ganti catatan seperti Create, bisa tambahkan logic disini
+            // Tapi biasanya Edit tidak mengubah catatan kecuali user mau.
+        } 
+        // Note: Jika pilih kosong, kita TIDAK mereset jadi 0 di mode edit 
+        // supaya nominal lama tidak hilang tiba-tiba kalau user batal milih kategori.
+    }
 
     public function render(): View
     {
@@ -39,8 +63,8 @@ class EditCashTransaction extends Component
             $this->form->date_paid = $transaction->date_paid;
             $this->form->transaction_note = $transaction->note ?? "";
             
-            // Kita reset input file setiap kali buka modal baru
-            $this->reset('proof');
+            // Reset input file & dropdown kategori setiap buka modal baru
+            $this->reset(['proof', 'selectedProgramId']);
 
             $this->dispatch('open-edit-modal');
         }
@@ -51,38 +75,31 @@ class EditCashTransaction extends Component
         $this->validate([
             'form.amount' => 'required|numeric',
             'form.date_paid' => 'required|date',
-            'proof' => 'nullable|image|max:10240', // Validasi foto (Max 10MB)
+            'proof' => 'nullable|image|max:10240',
         ]);
 
         if ($this->transactionId) {
             $transaction = CashTransaction::find($this->transactionId);
             
-            // Data dasar yang akan diupdate
             $dataToUpdate = [
                 'amount' => $this->form->amount,
                 'date_paid' => $this->form->date_paid,
                 'note' => $this->form->transaction_note,
             ];
 
-            // 4. LOGIKA GANTI FOTO
             if ($this->proof) {
-                // Hapus foto lama jika ada (biar server gak penuh)
                 if ($transaction->proof_of_payment) {
                     Storage::disk('public')->delete($transaction->proof_of_payment);
                 }
-
-                // Upload foto baru & masukkan ke array update
                 $dataToUpdate['proof_of_payment'] = $this->proof->store('payment-proofs', 'public');
             }
 
-            // Eksekusi Update
             $transaction->update($dataToUpdate);
 
             $this->dispatch('close-modal');
             $this->dispatch('success', message: 'Data berhasil diubah!');
             $this->dispatch('cash-transaction-updated')->to(CashTransactionCurrentWeekTable::class);
             
-            // Reset input file
             $this->reset('proof');
         }
     }

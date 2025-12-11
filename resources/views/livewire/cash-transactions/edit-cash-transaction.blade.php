@@ -34,11 +34,28 @@
 
                             {{-- KOLOM KANAN --}}
                             <div class="col-md-6">
+                                
+                                {{-- 1. DROPDOWN KATEGORI (Sama seperti Create) --}}
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-primary">Pilih Kategori SPP</label>
+                                    <select class="form-select border-primary" wire:model.live="selectedProgramId">
+                                        <option value="">-- Ubah Jenis Pembayaran (Opsional) --</option>
+                                        @foreach ($programs as $program)
+                                            <option value="{{ $program->id }}">
+                                                {{ $program->name }} 
+                                                (Rp {{ number_format(abs($program->additional_fee), 0, ',', '.') }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <div class="form-text small text-muted">Pilih untuk update nominal otomatis.</div>
+                                </div>
+
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Nominal (Rp)</label>
                                     <div class="input-group">
                                         <span class="input-group-text">Rp</span>
-                                        <input type="number" class="form-control" wire:model="form.amount">
+                                        {{-- 2. Input Amount diset READONLY agar konsisten dengan Create --}}
+                                        <input type="number" class="form-control fw-bold" wire:model="form.amount" readonly placeholder="0">
                                     </div>
                                     @error('form.amount') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                                 </div>
@@ -62,7 +79,6 @@
                                         Biarkan kosong jika tidak ingin mengubah foto. (Max: 10MB)
                                     </div>
                                     
-                                    {{-- Loading saat upload --}}
                                     <div wire:loading wire:target="proof" class="text-primary small mt-1">
                                         <span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Mengupload...
                                     </div>
